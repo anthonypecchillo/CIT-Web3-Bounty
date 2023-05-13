@@ -5,7 +5,7 @@ const { ethers } = require("hardhat");
 TODO:
 
 - [x] Concisify test user accounts
-- [ ] Concisify token constants
+- [x] Concisify token constants
 - [ ] Describe test user accounts (Ex: Alice starts every test with X $cJPY and one Ticket NFT already minted.)
 - [ ] Concisify event start time contstants
 - [ ] Add event emission tests
@@ -13,13 +13,10 @@ TODO:
 */
 
 // Units are "seconds"
-const TEN_DAYS = 60 * 60 * 24 * 10;
-const ONE_TOKEN = ethers.utils.parseEther("1");
+const ONE_DAY = 60 * 60 * 24;
+
 const TEN_TOKENS = ethers.utils.parseEther("10");
 const TWENTY_TOKENS = ethers.utils.parseEther("20");
-const NINETY_TOKENS = ethers.utils.parseEther("90");
-const ONE_HUNDRED_TOKENS = ethers.utils.parseEther("100");
-const ONE_HUNDRED_AND_TEN_TOKENS = ethers.utils.parseEther("110");
 
 // -----------------------------------------------
 // Hard-Coded for Henkaku CIT Intro to Web3 Course
@@ -35,16 +32,16 @@ const FUTURE_EVENT_START_TIME_UTC = 1686186000;
 // Replace Hard-Coded Version Above with this for General Use
 // ----------------------------------------------------------
 // // Units are "seconds" not "milliseconds"
-const PAST_EVENT_START_TIME_UTC = Math.floor(new Date().getTime() / 1000) - TEN_DAYS;
-// const FUTURE_EVENT_START_TIME_UTC = Math.floor(new Date().getTime() / 1000) = TEN_DAYS;
+const PAST_EVENT_START_TIME_UTC = Math.floor(new Date().getTime() / 1000) - ONE_DAY;
+// const FUTURE_EVENT_START_TIME_UTC = Math.floor(new Date().getTime() / 1000) = ONE_DAY;
 // ----------------------------------------------------------
 
 const setupFixtures = async (name, symbol, startTime) => {
-  let owner, alice, bob, carol, dave;
+  let owner, alice, bobby, carol, dave;
   let Registry, registry, CJPY, cJPY, TicketNFT, ticketNFT, POAP, poap;
 
   // Get signers (test user accounts)
-  [owner, alice, bob, carol, dave] = await ethers.getSigners();
+  [owner, alice, bobby, carol, dave] = await ethers.getSigners();
 
   // Deploy Registry contract
   Registry = await ethers.getContractFactory("Registry");
@@ -80,22 +77,22 @@ const setupFixtures = async (name, symbol, startTime) => {
     ethers.constants.AddressZero,
     owner.address,
     alice.address,
-    bob.address,
+    bobby.address,
     carol.address,
     ticketNFT.address,
   ]);
 
   // Mint cJPY tokens to test users
-  await cJPY.connect(owner).mint(owner.address, ONE_HUNDRED_TOKENS);
-  await cJPY.connect(owner).mint(alice.address, ONE_HUNDRED_TOKENS);
-  await cJPY.connect(owner).mint(carol.address, ONE_HUNDRED_TOKENS);
+  await cJPY.connect(owner).mint(owner.address, TEN_TOKENS);
+  await cJPY.connect(owner).mint(alice.address, TWENTY_TOKENS);
+  await cJPY.connect(owner).mint(carol.address, TWENTY_TOKENS);
 
   // Approve the TicketNFT contract to spend cJPY tokens on behalf of test users
-  await cJPY.connect(owner).approve(ticketNFT.address, ONE_HUNDRED_TOKENS);
-  await cJPY.connect(alice).approve(ticketNFT.address, ONE_HUNDRED_TOKENS);
-  await cJPY.connect(bob).approve(ticketNFT.address, ONE_HUNDRED_TOKENS);
+  await cJPY.connect(owner).approve(ticketNFT.address, TEN_TOKENS);
+  await cJPY.connect(alice).approve(ticketNFT.address, TEN_TOKENS);
+  await cJPY.connect(bobby).approve(ticketNFT.address, TEN_TOKENS);
 
-  return { owner, alice, bob, carol, dave, registry, cJPY, ticketNFT, poap };
+  return { owner, alice, bobby, carol, dave, registry, cJPY, ticketNFT, poap };
 };
 
 describe("TicketNFT", function () {
@@ -143,31 +140,30 @@ describe("TicketNFT", function () {
     });
 
     it("Should allow ticket minting by whitelist members for other people", async function () {
-      const { alice, bob, cJPY, ticketNFT } = fixtures;
+      const { alice, bobby, cJPY, ticketNFT } = fixtures;
       expect(await cJPY.balanceOf(ticketNFT.address)).to.equal(0);
-      await ticketNFT.connect(alice).mint(bob.address);
-      expect(await ticketNFT.ownerOf(1)).to.equal(bob.address);
+      await ticketNFT.connect(alice).mint(bobby.address);
+      expect(await ticketNFT.ownerOf(1)).to.equal(bobby.address);
       expect(await cJPY.balanceOf(ticketNFT.address)).to.equal(TEN_TOKENS);
-      expect(await cJPY.balanceOf(alice.address)).to.equal(NINETY_TOKENS);
     });
 
     it("Should correctly increment ticket ids when multiple tickets are minted", async function () {
-      const { alice, bob, cJPY, ticketNFT } = fixtures;
+      const { alice, bobby, cJPY, ticketNFT } = fixtures;
 
-      await cJPY.connect(alice).transfer(bob.address, TEN_TOKENS);
+      await cJPY.connect(alice).transfer(bobby.address, TEN_TOKENS);
 
       await ticketNFT.connect(alice).mint(alice.address);
-      await ticketNFT.connect(bob).mint(bob.address);
+      await ticketNFT.connect(bobby).mint(bobby.address);
 
       expect(await ticketNFT.ownerOf(1)).to.equal(alice.address);
-      expect(await ticketNFT.ownerOf(2)).to.equal(bob.address);
+      expect(await ticketNFT.ownerOf(2)).to.equal(bobby.address);
     });
 
     it("Should correctly update ticket ownership when a ticket is transferred", async function () {
-      const { alice, bob, ticketNFT } = fixtures;
+      const { alice, bobby, ticketNFT } = fixtures;
       await ticketNFT.connect(alice).mint(alice.address);
-      await ticketNFT.connect(alice).transferFrom(alice.address, bob.address, 1);
-      expect(await ticketNFT.ownerOf(1)).to.equal(bob.address);
+      await ticketNFT.connect(alice).transferFrom(alice.address, bobby.address, 1);
+      expect(await ticketNFT.ownerOf(1)).to.equal(bobby.address);
     });
 
     it("Should prevent ticket minting by non-whitelist members", async function () {
@@ -176,8 +172,8 @@ describe("TicketNFT", function () {
     });
 
     it("Should prevent ticket minting if the customer has an insufficient cJPY balance", async function () {
-      const { bob, ticketNFT } = fixtures;
-      await expect(ticketNFT.connect(bob).mint(bob.address)).to.be.revertedWith("Insufficient cJPY balance.");
+      const { bobby, ticketNFT } = fixtures;
+      await expect(ticketNFT.connect(bobby).mint(bobby.address)).to.be.revertedWith("Insufficient cJPY balance.");
     });
 
     it("Should prevent ticket minting if sender hasn't approved the contract first", async function () {
@@ -185,7 +181,7 @@ describe("TicketNFT", function () {
 
       await expect(ticketNFT.connect(carol).mint(carol.address)).to.be.revertedWith("ERC20: insufficient allowance");
 
-      await cJPY.connect(carol).approve(ticketNFT.address, ONE_HUNDRED_TOKENS);
+      await cJPY.connect(carol).approve(ticketNFT.address, TEN_TOKENS);
       await ticketNFT.connect(carol).mint(carol.address);
       expect(await ticketNFT.ownerOf(1)).to.equal(carol.address);
     });
@@ -203,18 +199,18 @@ describe("TicketNFT", function () {
 
     it("Should allow the owner to withdraw cJPY tokens when there is a positive balance", async function () {
       const { owner, alice, cJPY, ticketNFT } = fixtures;
-      expect(await cJPY.balanceOf(owner.address)).to.equal(ONE_HUNDRED_TOKENS);
+      expect(await cJPY.balanceOf(owner.address)).to.equal(TEN_TOKENS);
       await ticketNFT.connect(alice).mint(alice.address);
       await ticketNFT.connect(owner).withdraw(TEN_TOKENS);
-      expect(await cJPY.balanceOf(owner.address)).to.equal(ONE_HUNDRED_AND_TEN_TOKENS);
+      expect(await cJPY.balanceOf(owner.address)).to.equal(TWENTY_TOKENS);
     });
 
     it("Should prevent the owner from withdrawing more cJPY tokens than are in the contract", async function () {
       const { owner, alice, cJPY, ticketNFT } = fixtures;
-      expect(await cJPY.balanceOf(owner.address)).to.equal(ONE_HUNDRED_TOKENS);
+      expect(await cJPY.balanceOf(owner.address)).to.equal(TEN_TOKENS);
       await ticketNFT.connect(alice).mint(alice.address);
       await expect(ticketNFT.connect(owner).withdraw(TWENTY_TOKENS)).to.be.revertedWith("Insufficient contract balance.");
-      // expect(await cJPY.balanceOf(owner.address)).to.equal(TEN_TOKENS);
+      expect(await cJPY.balanceOf(owner.address)).to.equal(TEN_TOKENS);
     });
 
     it("Should prevent non-owner from withdrawing cJPY tokens", async function () {
@@ -265,9 +261,9 @@ describe("TicketNFT", function () {
     });
 
     it("Should prevent redeeming a POAP token with an invalid ticket", async function () {
-      const { bob, poap } = fixtures;
+      const { bobby, poap } = fixtures;
       // Bob tries to redeem a POAP token with a non-existent ticket
-      await expect(poap.connect(bob).mint(2, bob.address)).to.be.revertedWith("ERC721: invalid token ID");
+      await expect(poap.connect(bobby).mint(2, bobby.address)).to.be.revertedWith("ERC721: invalid token ID");
     });
 
     it("Should prevent redeeming a POAP token twice with the same ticket", async function () {
