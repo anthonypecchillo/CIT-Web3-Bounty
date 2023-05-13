@@ -7,7 +7,6 @@ TODO:
 - [x] Concisify test user accounts
 - [x] Concisify token constants
 - [x] Describe test user accounts (Ex: Alice starts every test with X $cJPY and one Ticket NFT already minted.)
-- [ ] Concisify event start time contstants (Ex: Add test that checks which version of constant is active and provide guidance.)
 - [ ] Add event emission tests
 - [ ] Add commentary
 */
@@ -25,7 +24,7 @@ const TWENTY_TOKENS = ethers.utils.parseEther("20");
 // Units are "seconds" not "milliseconds"
 // (Thu May 07 2022 01:00:00) <=> 1651971600 (sec)
 // (Thu Jun 08 2023 01:00:00) <=> 1686186000 (sec)
-// const PAST_EVENT_START_TIME_UTC = 1651971600;
+const PAST_EVENT_START_TIME_UTC = 1651971600;
 const FUTURE_EVENT_START_TIME_UTC = 1686186000;
 // -----------------------------------------------
 
@@ -34,8 +33,8 @@ const FUTURE_EVENT_START_TIME_UTC = 1686186000;
 // ----------------------------------------------------------
 //
 // Units are "seconds" not "milliseconds"
-const PAST_EVENT_START_TIME_UTC = Math.floor(new Date().getTime() / 1000) - ONE_DAY;
-// const FUTURE_EVENT_START_TIME_UTC = Math.floor(new Date().getTime() / 1000) = ONE_DAY;
+// const PAST_EVENT_START_TIME_UTC = Math.floor(new Date().getTime() / 1000) - ONE_DAY;
+// const FUTURE_EVENT_START_TIME_UTC = Math.floor(new Date().getTime() / 1000) + ONE_DAY;
 // ----------------------------------------------------------
 
 // ----------------------------------------------------------
