@@ -6,7 +6,7 @@ TODO:
 
 - [x] Concisify test user accounts
 - [x] Concisify token constants
-- [ ] Describe test user accounts (Ex: Alice starts every test with X $cJPY and one Ticket NFT already minted.)
+- [x] Describe test user accounts (Ex: Alice starts every test with X $cJPY and one Ticket NFT already minted.)
 - [ ] Concisify event start time contstants (Ex: Add test that checks which version of constant is active and provide guidance.)
 - [ ] Add event emission tests
 - [ ] Add commentary
@@ -21,6 +21,7 @@ const TWENTY_TOKENS = ethers.utils.parseEther("20");
 // -----------------------------------------------
 // Hard-Coded for Henkaku CIT Intro to Web3 Course
 // -----------------------------------------------
+//
 // Units are "seconds" not "milliseconds"
 // (Thu May 07 2022 01:00:00) <=> 1651971600 (sec)
 // (Thu Jun 08 2023 01:00:00) <=> 1686186000 (sec)
@@ -31,11 +32,51 @@ const FUTURE_EVENT_START_TIME_UTC = 1686186000;
 // ----------------------------------------------------------
 // Replace Hard-Coded Version Above with this for General Use
 // ----------------------------------------------------------
-// // Units are "seconds" not "milliseconds"
+//
+// Units are "seconds" not "milliseconds"
 const PAST_EVENT_START_TIME_UTC = Math.floor(new Date().getTime() / 1000) - ONE_DAY;
 // const FUTURE_EVENT_START_TIME_UTC = Math.floor(new Date().getTime() / 1000) = ONE_DAY;
 // ----------------------------------------------------------
 
+// ----------------------------------------------------------
+// Setting Up Test User Accounts ("Fixtures")
+// ----------------------------------------------------------
+//
+// In the setupFixtures function below, we'll create a few test user accounts and mint them some
+// cJPY tokens. We'll also approve the TicketNFT contract to spend some of those cJPY tokens on
+// behalf of each test user.
+//
+// The following is a breakdown of the initial state of each test user account in our test suite.
+//
+//   User   | Whitelisted cJPY User | Starting cJPY Balance | TicketNFT Allowance
+//   -------|-----------------------|-----------------------|-------------------
+//   Owner  |         Yes           |       10 cJPY         |      10 cJPY
+//   Alice  |         Yes           |       20 cJPY         |      10 cJPY
+//   Bobby  |         Yes           |        0 cJPY         |      10 cJPY
+//   Carol  |         Yes           |       20 cJPY         |       0 cJPY
+//   David  |         No            |        0 cJPY         |       0 cJPY
+//
+// Owner:
+//   A special role. In addition to being a whitelisted cJPY user, owner is the account that
+//   deploys all contracts and handles the initial setup, including minting other test users
+//   their initial cJPY balances.
+//
+// Alice:
+//   A regular whitelisted cJPY user and starts with a balance of 20 cJPY.
+//   She has approved the TicketNFT contract to transfer 10 cJPY on her behalf.
+//
+// Bobby:
+//   A whitelisted cJPY user, but he starts with no cJPY in his account. However, he has
+//   approved the TicketNFT contract to transfer 10 cJPY on his behalf - he'll just have
+//   to get some cJPY from somewhere first...
+//
+// Carol:
+//   Carol is a whitelisted cJPY user with a starting balance of 20 cJPY. She has not yet approved
+//   the TicketNFT contract to transfer any cJPY on her behalf.
+//
+// David:
+//   David is not a whitelisted cJPY user and starts with no cJPY in his account.
+//   He has not given any allowance to the TicketNFT contract.
 const setupFixtures = async (name, symbol, startTime) => {
   let owner, alice, bobby, carol, david;
   let Registry, registry, CJPY, cJPY, TicketNFT, ticketNFT, POAP, poap;
@@ -94,8 +135,9 @@ const setupFixtures = async (name, symbol, startTime) => {
 
   return { owner, alice, bobby, carol, david, registry, cJPY, ticketNFT, poap };
 };
+// ----------------------------------------------------------
 
-describe("TicketNFT", function () {
+describe("Event Tickets & POAPs", function () {
 
   describe("Initializing Our Contracts", function () {
 
