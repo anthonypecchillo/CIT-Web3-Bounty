@@ -7,7 +7,7 @@ TODO:
 - [x] Concisify test user accounts
 - [x] Concisify token constants
 - [ ] Describe test user accounts (Ex: Alice starts every test with X $cJPY and one Ticket NFT already minted.)
-- [ ] Concisify event start time contstants
+- [ ] Concisify event start time contstants (Ex: Add test that checks which version of constant is active and provide guidance.)
 - [ ] Add event emission tests
 - [ ] Add commentary
 */
@@ -37,11 +37,11 @@ const PAST_EVENT_START_TIME_UTC = Math.floor(new Date().getTime() / 1000) - ONE_
 // ----------------------------------------------------------
 
 const setupFixtures = async (name, symbol, startTime) => {
-  let owner, alice, bobby, carol, dave;
+  let owner, alice, bobby, carol, david;
   let Registry, registry, CJPY, cJPY, TicketNFT, ticketNFT, POAP, poap;
 
   // Get signers (test user accounts)
-  [owner, alice, bobby, carol, dave] = await ethers.getSigners();
+  [owner, alice, bobby, carol, david] = await ethers.getSigners();
 
   // Deploy Registry contract
   Registry = await ethers.getContractFactory("Registry");
@@ -92,7 +92,7 @@ const setupFixtures = async (name, symbol, startTime) => {
   await cJPY.connect(alice).approve(ticketNFT.address, TEN_TOKENS);
   await cJPY.connect(bobby).approve(ticketNFT.address, TEN_TOKENS);
 
-  return { owner, alice, bobby, carol, dave, registry, cJPY, ticketNFT, poap };
+  return { owner, alice, bobby, carol, david, registry, cJPY, ticketNFT, poap };
 };
 
 describe("TicketNFT", function () {
@@ -167,8 +167,8 @@ describe("TicketNFT", function () {
     });
 
     it("Should prevent ticket minting by non-whitelist members", async function () {
-      const { dave, ticketNFT } = fixtures;
-      await expect(ticketNFT.connect(dave).mint(dave.address)).to.be.revertedWith("Insufficient cJPY balance.");
+      const { david, ticketNFT } = fixtures;
+      await expect(ticketNFT.connect(david).mint(david.address)).to.be.revertedWith("Insufficient cJPY balance.");
     });
 
     it("Should prevent ticket minting if the customer has an insufficient cJPY balance", async function () {
