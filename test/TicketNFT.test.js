@@ -1,21 +1,12 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
-/*
-TODO:
-
-- [x] Concisify test user accounts
-- [x] Concisify token constants
-- [x] Describe test user accounts (Ex: Alice starts every test with X $cJPY and one Ticket NFT already minted.)
-- [ ] Add event emission tests
-- [ ] Add commentary
-*/
-
 // Units are "seconds"
 const ONE_DAY = 60 * 60 * 24;
 
 const TEN_TOKENS = ethers.utils.parseEther("10");
 const TWENTY_TOKENS = ethers.utils.parseEther("20");
+const THIRTY_TOKENS = ethers.utils.parseEther("30");
 
 // -----------------------------------------------
 // Hard-Coded for Henkaku CIT Intro to Web3 Course
@@ -113,6 +104,7 @@ const setupFixtures = async (name, symbol, startTime) => {
     );
   await poap.deployed();
 
+  // Add test users to the Registry whitelist
   await registry.connect(owner).bulkAddToWhitelist([
     ethers.constants.AddressZero,
     owner.address,
@@ -123,15 +115,16 @@ const setupFixtures = async (name, symbol, startTime) => {
   ]);
 
   // Mint cJPY tokens to test users
-  await cJPY.connect(owner).mint(owner.address, TEN_TOKENS);
+  await cJPY.connect(owner).mint(owner.address, TWENTY_TOKENS);
   await cJPY.connect(owner).mint(alice.address, TWENTY_TOKENS);
   await cJPY.connect(owner).mint(carol.address, TWENTY_TOKENS);
 
   // Approve the TicketNFT contract to spend cJPY tokens on behalf of test users
-  await cJPY.connect(owner).approve(ticketNFT.address, TEN_TOKENS);
-  await cJPY.connect(alice).approve(ticketNFT.address, TEN_TOKENS);
-  await cJPY.connect(bobby).approve(ticketNFT.address, TEN_TOKENS);
+  await cJPY.connect(owner).approve(ticketNFT.address, TWENTY_TOKENS);
+  await cJPY.connect(alice).approve(ticketNFT.address, TWENTY_TOKENS);
+  await cJPY.connect(bobby).approve(ticketNFT.address, TWENTY_TOKENS);
 
+  // Return fixtures
   return { owner, alice, bobby, carol, david, registry, cJPY, ticketNFT, poap };
 };
 // ----------------------------------------------------------
@@ -174,36 +167,70 @@ describe("Event Tickets & POAPs", function () {
 
     it("Should allow ticket minting by whitelist members", async function () {
       const { alice, cJPY, ticketNFT } = fixtures;
+
+      // Initial State
       expect(await cJPY.balanceOf(ticketNFT.address)).to.equal(0);
+      expect(await ticketNFT.balanceOf(alice.address)).to.equal(0);
+
+      // Action
       await ticketNFT.connect(alice).mint(alice.address);
-      expect(await ticketNFT.ownerOf(1)).to.equal(alice.address);
+
+      // Final State
       expect(await cJPY.balanceOf(ticketNFT.address)).to.equal(TEN_TOKENS);
+      expect(await ticketNFT.balanceOf(alice.address)).to.equal(1);
+      expect(await ticketNFT.ownerOf(1)).to.equal(alice.address);
     });
 
-    it("Should allow ticket minting by whitelist members for other people", async function () {
+    it("Should allow whitelist members to buy tickets for other people", async function () {
       const { alice, bobby, cJPY, ticketNFT } = fixtures;
+
+      // Initial State
       expect(await cJPY.balanceOf(ticketNFT.address)).to.equal(0);
+      expect(await ticketNFT.balanceOf(alice.address)).to.equal(0);
+      expect(await ticketNFT.balanceOf(bobby.address)).to.equal(0);
+
+      // Action
       await ticketNFT.connect(alice).mint(bobby.address);
-      expect(await ticketNFT.ownerOf(1)).to.equal(bobby.address);
+
+      // Final State
       expect(await cJPY.balanceOf(ticketNFT.address)).to.equal(TEN_TOKENS);
+      expect(await ticketNFT.balanceOf(alice.address)).to.equal(0);
+      expect(await ticketNFT.balanceOf(bobby.address)).to.equal(1);
+      expect(await ticketNFT.ownerOf(1)).to.equal(bobby.address);
     });
 
     it("Should correctly increment ticket ids when multiple tickets are minted", async function () {
       const { alice, bobby, cJPY, ticketNFT } = fixtures;
 
-      await cJPY.connect(alice).transfer(bobby.address, TEN_TOKENS);
+      // Initial State
+      expect(await ticketNFT.balanceOf(alice.address)).to.equal(0);
+      expect(await ticketNFT.balanceOf(bobby.address)).to.equal(0);
 
+      // Action
+      await cJPY.connect(alice).transfer(bobby.address, TEN_TOKENS);
       await ticketNFT.connect(alice).mint(alice.address);
       await ticketNFT.connect(bobby).mint(bobby.address);
 
+      // Final State
       expect(await ticketNFT.ownerOf(1)).to.equal(alice.address);
       expect(await ticketNFT.ownerOf(2)).to.equal(bobby.address);
     });
 
     it("Should correctly update ticket ownership when a ticket is transferred", async function () {
       const { alice, bobby, ticketNFT } = fixtures;
+
+      // Initial State
       await ticketNFT.connect(alice).mint(alice.address);
+      expect(await ticketNFT.balanceOf(alice.address)).to.equal(1);
+      expect(await ticketNFT.balanceOf(bobby.address)).to.equal(0);
+      expect(await ticketNFT.ownerOf(1)).to.equal(alice.address);
+
+      // Action
       await ticketNFT.connect(alice).transferFrom(alice.address, bobby.address, 1);
+
+      // Final State
+      expect(await ticketNFT.balanceOf(alice.address)).to.equal(0);
+      expect(await ticketNFT.balanceOf(bobby.address)).to.equal(1);
       expect(await ticketNFT.ownerOf(1)).to.equal(bobby.address);
     });
 
@@ -213,57 +240,127 @@ describe("Event Tickets & POAPs", function () {
     });
 
     it("Should prevent ticket minting if the customer has an insufficient cJPY balance", async function () {
-      const { bobby, ticketNFT } = fixtures;
+      const { bobby, cJPY, ticketNFT } = fixtures;
+
+      // Initial State
+      expect(await cJPY.balanceOf(bobby.address)).to.equal(0);
+      expect(await ticketNFT.balanceOf(bobby.address)).to.equal(0);
+
+      // Action
       await expect(ticketNFT.connect(bobby).mint(bobby.address)).to.be.revertedWith("Insufficient cJPY balance.");
+
+      // Final State
+      expect(await cJPY.balanceOf(bobby.address)).to.equal(0);
+      expect(await ticketNFT.balanceOf(bobby.address)).to.equal(0);
     });
 
     it("Should prevent ticket minting if sender hasn't approved the contract first", async function () {
-      const { cJPY, owner, carol, ticketNFT } = fixtures;
+      const { owner, carol, cJPY, ticketNFT } = fixtures;
 
+      // Initial State
+      expect(await cJPY.balanceOf(carol.address)).to.equal(TWENTY_TOKENS);
+      expect(await cJPY.allowance(carol.address, ticketNFT.address)).to.equal(0);
+      expect(await ticketNFT.balanceOf(carol.address)).to.equal(0);
+
+      // Action
       await expect(ticketNFT.connect(carol).mint(carol.address)).to.be.revertedWith("ERC20: insufficient allowance");
-
       await cJPY.connect(carol).approve(ticketNFT.address, TEN_TOKENS);
+      expect(await cJPY.allowance(carol.address, ticketNFT.address)).to.equal(TEN_TOKENS);
       await ticketNFT.connect(carol).mint(carol.address);
-      expect(await ticketNFT.ownerOf(1)).to.equal(carol.address);
+
+      // Final State
+      expect(await cJPY.balanceOf(carol.address)).to.equal(TEN_TOKENS);
+      expect(await cJPY.allowance(carol.address, ticketNFT.address)).to.equal(0);
+      expect(await ticketNFT.balanceOf(carol.address)).to.equal(1);
     });
 
     it("Should allow the owner to update the ticket price", async function () {
       const { owner, ticketNFT } = fixtures;
+
+      // Initial State
+      const oldTicketPrice = await ticketNFT.ticketPrice();
+
+      // Action
       await ticketNFT.connect(owner).updateTicketPrice(TWENTY_TOKENS);
+
+      // Final State
+      expect(await ticketNFT.ticketPrice()).not.to.equal(oldTicketPrice);
       expect(await ticketNFT.ticketPrice()).to.equal(TWENTY_TOKENS);
     });
 
     it("Should prevent non-owners from updating the ticket price", async function () {
       const { alice, ticketNFT } = fixtures;
+
+      // Initial State
+      const oldTicketPrice = await ticketNFT.ticketPrice();
+
+      // Action
       await expect(ticketNFT.connect(alice).updateTicketPrice(TWENTY_TOKENS)).to.be.revertedWith("Caller is not the owner.");
+
+      // Final State
+      expect(await ticketNFT.ticketPrice()).to.equal(oldTicketPrice);
     });
 
     it("Should allow the owner to withdraw cJPY tokens when there is a positive balance", async function () {
       const { owner, alice, cJPY, ticketNFT } = fixtures;
-      expect(await cJPY.balanceOf(owner.address)).to.equal(TEN_TOKENS);
-      await ticketNFT.connect(alice).mint(alice.address);
-      await ticketNFT.connect(owner).withdraw(TEN_TOKENS);
+
+      // Initial State
       expect(await cJPY.balanceOf(owner.address)).to.equal(TWENTY_TOKENS);
+      expect(await cJPY.balanceOf(alice.address)).to.equal(TWENTY_TOKENS);
+      expect(await cJPY.balanceOf(ticketNFT.address)).to.equal(0);
+
+      // Action
+      await ticketNFT.connect(alice).mint(alice.address);
+      expect(await cJPY.balanceOf(ticketNFT.address)).to.equal(TEN_TOKENS);
+      await ticketNFT.connect(owner).withdraw(TEN_TOKENS);
+
+      // Final State
+      expect(await cJPY.balanceOf(owner.address)).to.equal(THIRTY_TOKENS);
+      expect(await cJPY.balanceOf(alice.address)).to.equal(TEN_TOKENS);
+      expect(await cJPY.balanceOf(ticketNFT.address)).to.equal(0);
     });
 
     it("Should prevent the owner from withdrawing more cJPY tokens than are in the contract", async function () {
       const { owner, alice, cJPY, ticketNFT } = fixtures;
-      expect(await cJPY.balanceOf(owner.address)).to.equal(TEN_TOKENS);
+
+      // Initial State
+      expect(await cJPY.balanceOf(owner.address)).to.equal(TWENTY_TOKENS);
+      expect(await cJPY.balanceOf(alice.address)).to.equal(TWENTY_TOKENS);
+      expect(await cJPY.balanceOf(ticketNFT.address)).to.equal(0);
+
+      // Action
       await ticketNFT.connect(alice).mint(alice.address);
+      expect(await cJPY.balanceOf(ticketNFT.address)).to.equal(TEN_TOKENS);
       await expect(ticketNFT.connect(owner).withdraw(TWENTY_TOKENS)).to.be.revertedWith("Insufficient contract balance.");
-      expect(await cJPY.balanceOf(owner.address)).to.equal(TEN_TOKENS);
+
+      // Final State
+      expect(await cJPY.balanceOf(owner.address)).to.equal(TWENTY_TOKENS);
+      expect(await cJPY.balanceOf(alice.address)).to.equal(TEN_TOKENS);
+      expect(await cJPY.balanceOf(ticketNFT.address)).to.equal(TEN_TOKENS);
     });
 
     it("Should prevent non-owner from withdrawing cJPY tokens", async function () {
       const { alice, ticketNFT } = fixtures;
+
+      // Action
       await expect(ticketNFT.connect(alice).withdraw(TEN_TOKENS)).to.be.revertedWith("Caller is not the owner.");
     });
 
     it("Should prevent minting of POAP tokens before the event", async function () {
-      // Alice tries to redeem a POAP token with her ticket
       const { alice, ticketNFT, poap } = fixtures;
+
+      // Initial State
+      expect(await ticketNFT.balanceOf(alice.address)).to.equal(0);
+      expect(await poap.balanceOf(alice.address)).to.equal(0);
+
+      // Action
       await ticketNFT.connect(alice).mint(alice.address);
+      expect(await ticketNFT.balanceOf(alice.address)).to.equal(1);
       await expect(poap.connect(alice).mint(1, alice.address)).to.be.revertedWith("Event hasn't started yet.");
+
+      // Final State
+      expect(await ticketNFT.balanceOf(alice.address)).to.equal(1);
+      expect(await poap.balanceOf(alice.address)).to.equal(0);
     });
   });
 
@@ -275,45 +372,84 @@ describe("Event Tickets & POAPs", function () {
       await fixtures.ticketNFT.connect(fixtures.owner).mint(fixtures.alice.address);
     });
 
-    it("Should allow ticket minting by the owner on behalf of whitelist members after the event has started", async function () {
-      const { owner, alice, ticketNFT } = fixtures;
-      ticketNFT.connect(owner).mint(alice.address);
-      expect(await ticketNFT.ownerOf(1)).to.equal(alice.address);
+    it("Should allow ticket minting by the owner on behalf of whitelist members", async function () {
+      const { owner, alice, cJPY, ticketNFT } = fixtures;
+
+      // Initial State
+      expect(await ticketNFT.balanceOf(alice.address)).to.equal(1);
+
+      // Action
+      await ticketNFT.connect(owner).mint(alice.address);
+
+      // Final State
+      expect(await ticketNFT.balanceOf(alice.address)).to.equal(2);
+      expect(await ticketNFT.ownerOf(2)).to.equal(alice.address);
     });
 
-    it("Should prevent ticket minting by anyone else after the event has started", async function () {
-      const { alice, ticketNFT } = fixtures;
+    it("Should prevent ticket minting by anyone else", async function () {
+      const { alice, bobby, carol, ticketNFT } = fixtures;
+
+      // Initial State
+      expect(await ticketNFT.balanceOf(alice.address)).to.equal(1);
+      expect(await ticketNFT.balanceOf(bobby.address)).to.equal(0);
+      expect(await ticketNFT.balanceOf(carol.address)).to.equal(0);
+
+      // Action
       await expect(ticketNFT.connect(alice).mint(alice.address)).to.be.revertedWith("Event already started. Ticket sales are finished!");
+      await expect(ticketNFT.connect(bobby).mint(bobby.address)).to.be.revertedWith("Event already started. Ticket sales are finished!");
+      await expect(ticketNFT.connect(alice).mint(carol.address)).to.be.revertedWith("Event already started. Ticket sales are finished!");
+
+      // Final State
+      expect(await ticketNFT.balanceOf(alice.address)).to.equal(1);
+      expect(await ticketNFT.balanceOf(bobby.address)).to.equal(0);
+      expect(await ticketNFT.balanceOf(carol.address)).to.equal(0);
     });
 
-    it("Should allow minting of POAP tokens after the event", async function () {
-      const { alice, poap } = fixtures;
-      // Alice redeems a POAP token with her ticket
-      await poap.connect(alice).mint(1, alice.address);
-      expect(await poap.ownerOf(1)).to.equal(alice.address);
-    });
-
-    it("Should burn the ticket after redeeming a POAP token", async function () {
+    it("Should allow ticket holders to redeem a POAP token (and should burn their ticket)", async function () {
       const { alice, ticketNFT, poap } = fixtures;
-      // Alice redeems a POAP token with her ticket
+
+      // Initial State
+      expect(await ticketNFT.balanceOf(alice.address)).to.equal(1);
+      expect(await ticketNFT.ownerOf(1)).to.equal(alice.address);
+      expect(await poap.balanceOf(alice.address)).to.equal(0);
+
+      // Action
       await poap.connect(alice).mint(1, alice.address);
-      // Her ticket should be burned now
+
+      // Final State
+      expect(await ticketNFT.balanceOf(alice.address)).to.equal(0);
       await expect(ticketNFT.ownerOf(1)).to.be.revertedWith("ERC721: invalid token ID");
+      expect(await poap.balanceOf(alice.address)).to.equal(1);
     });
 
     it("Should prevent redeeming a POAP token with an invalid ticket", async function () {
-      const { bobby, poap } = fixtures;
-      // Bob tries to redeem a POAP token with a non-existent ticket
+      const { bobby, ticketNFT, poap } = fixtures;
+
+      // Initial State
+      expect(await poap.poapCounter()).to.equal(0);
+      await expect(ticketNFT.ownerOf(2)).to.be.revertedWith("ERC721: invalid token ID");
+
+      // Action
       await expect(poap.connect(bobby).mint(2, bobby.address)).to.be.revertedWith("ERC721: invalid token ID");
+
+      // Final State
+      expect(await poap.poapCounter()).to.equal(0);
     });
 
     it("Should prevent redeeming a POAP token twice with the same ticket", async function () {
-      const { alice, poap } = fixtures;
-      // Alice redeems a POAP token with her ticket
-      await poap.connect(alice).mint(1, alice.address);
-      // Alice tries to redeem another POAP token with the same ticket
-      await expect(poap.connect(alice).mint(1, alice.address)).to.be.revertedWith("ERC721: invalid token ID");
-    });
+      const { alice, ticketNFT, poap } = fixtures;
 
+      // Initial State
+      expect(await ticketNFT.balanceOf(alice.address)).to.equal(1);
+      expect(await poap.balanceOf(alice.address)).to.equal(0);
+
+      // Action
+      await poap.connect(alice).mint(1, alice.address);
+      await expect(poap.connect(alice).mint(1, alice.address)).to.be.revertedWith("ERC721: invalid token ID");
+
+      // Final State
+      expect(await ticketNFT.balanceOf(alice.address)).to.equal(0);
+      expect(await poap.balanceOf(alice.address)).to.equal(1);
+    });
   });
 });

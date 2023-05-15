@@ -45,6 +45,7 @@ contract TicketNFT is ERC721, ITicketNFT {
     }
 
     function updateTicketPrice(uint256 newPrice) external onlyOwner {
+        require(newPrice != ticketPrice, "New price is same as current price.");
         ticketPrice = newPrice;
     }
 
