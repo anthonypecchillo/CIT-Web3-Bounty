@@ -12,15 +12,15 @@ contract TicketNFT is ERC721, ITicketNFT {
     IERC20 public cJPYToken;
     address public owner;
     uint256 public startTime;
-    uint256 public ticketPrice;
     uint256 public ticketCounter;  // default value is zero
+    uint256 public ticketPrice;
 
     constructor(
         string memory _name,
         string memory _symbol,
         IERC20 _cJPYToken,
-        uint256 _ticketPrice,
-        uint256 _startTime
+        uint256 _startTime,
+        uint256 _ticketPrice
     ) ERC721(_name, _symbol) {
         cJPYToken = IERC20(_cJPYToken);
         owner = msg.sender;
@@ -34,8 +34,14 @@ contract TicketNFT is ERC721, ITicketNFT {
     }
 
     function mint(address to) external {
-        require(msg.sender == owner || block.timestamp <= startTime, "Event already started. Ticket sales are finished!");
-        require(cJPYToken.balanceOf(msg.sender) >= ticketPrice, "Insufficient cJPY balance.");
+        require(
+            msg.sender == owner || block.timestamp <= startTime,
+            "Event already started. Ticket sales are finished!"
+        );
+        require(
+            cJPYToken.balanceOf(msg.sender) >= ticketPrice,
+            "Insufficient cJPY balance."
+        );
 
         // FIXME: Handle error if transfer fails
         cJPYToken.transferFrom(msg.sender, address(this), ticketPrice);

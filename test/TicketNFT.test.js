@@ -90,8 +90,8 @@ const setupFixtures = async (name, symbol, startTime) => {
     `${name} Tickets`,
     `${symbol}T`,
     cJPY.address,
-    TEN_TOKENS,
     startTime,
+    TEN_TOKENS,
   );
   await ticketNFT.deployed();
 
