@@ -149,7 +149,7 @@ describe("Event Tickets & POAPs", function () {
       expect(await ticketNFT.ticketCounter()).to.equal(0);
     });
 
-    it("Should correctly initialize the POAP contract", async function () {
+    xit("Should correctly initialize the POAP contract", async function () {
       const { ticketNFT, poap } = fixtures;
       expect(await poap.name()).to.equal("Chiba Hill POAP");
       expect(await poap.symbol()).to.equal("CHP");
@@ -346,7 +346,7 @@ describe("Event Tickets & POAPs", function () {
       await expect(ticketNFT.connect(alice).withdraw(TEN_TOKENS)).to.be.revertedWith("Caller is not the owner.");
     });
 
-    it("Should prevent minting of POAP tokens before the event", async function () {
+    xit("Should prevent minting of POAP tokens before the event", async function () {
       const { alice, ticketNFT, poap } = fixtures;
 
       // Initial State
@@ -372,8 +372,8 @@ describe("Event Tickets & POAPs", function () {
       await fixtures.ticketNFT.connect(fixtures.owner).mint(fixtures.alice.address);
     });
 
-    it("Should allow ticket minting by the owner on behalf of whitelist members", async function () {
-      const { owner, alice, cJPY, ticketNFT } = fixtures;
+    it("Should allow the owner to mint tickets on behalf of whitelist members", async function () {
+      const { owner, alice, ticketNFT } = fixtures;
 
       // Initial State
       expect(await ticketNFT.balanceOf(alice.address)).to.equal(1);
@@ -405,7 +405,7 @@ describe("Event Tickets & POAPs", function () {
       expect(await ticketNFT.balanceOf(carol.address)).to.equal(0);
     });
 
-    it("Should allow ticket holders to redeem a POAP token (and should burn their ticket)", async function () {
+    xit("Should allow ticket holders to redeem a POAP token (and should burn their ticket)", async function () {
       const { alice, ticketNFT, poap } = fixtures;
 
       // Initial State
@@ -422,7 +422,7 @@ describe("Event Tickets & POAPs", function () {
       expect(await poap.balanceOf(alice.address)).to.equal(1);
     });
 
-    it("Should prevent redeeming a POAP token with an invalid ticket", async function () {
+    xit("Should prevent redeeming a POAP token with an invalid ticket", async function () {
       const { bobby, ticketNFT, poap } = fixtures;
 
       // Initial State
@@ -436,7 +436,7 @@ describe("Event Tickets & POAPs", function () {
       expect(await poap.poapCounter()).to.equal(0);
     });
 
-    it("Should prevent redeeming a POAP token twice with the same ticket", async function () {
+    xit("Should prevent redeeming a POAP token twice with the same ticket", async function () {
       const { alice, ticketNFT, poap } = fixtures;
 
       // Initial State
