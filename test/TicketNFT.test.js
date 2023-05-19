@@ -98,9 +98,9 @@ const setupFixtures = async (name, symbol, startTime) => {
   // Deploy POAP contract
   POAP = await ethers.getContractFactory("POAP");
   poap = await POAP.deploy(
-    ticketNFT.address,
     `${name} POAP`,
     `${symbol}P`,
+    ticketNFT.address,
     );
   await poap.deployed();
 
@@ -356,7 +356,7 @@ describe("Event Tickets & POAPs", function () {
       // Action
       await ticketNFT.connect(alice).mint(alice.address);
       expect(await ticketNFT.balanceOf(alice.address)).to.equal(1);
-      await expect(poap.connect(alice).mint(1, alice.address)).to.be.revertedWith("Event hasn't started yet.");
+      await expect(poap.connect(alice).mint(1)).to.be.revertedWith("Event hasn't started yet.");
 
       // Final State
       expect(await ticketNFT.balanceOf(alice.address)).to.equal(1);
@@ -414,7 +414,7 @@ describe("Event Tickets & POAPs", function () {
       expect(await poap.balanceOf(alice.address)).to.equal(0);
 
       // Action
-      await poap.connect(alice).mint(1, alice.address);
+      await poap.connect(alice).mint(1);
 
       // Final State
       expect(await ticketNFT.balanceOf(alice.address)).to.equal(0);
@@ -422,7 +422,7 @@ describe("Event Tickets & POAPs", function () {
       expect(await poap.balanceOf(alice.address)).to.equal(1);
     });
 
-    xit("Should prevent redeeming a POAP token with an invalid ticket", async function () {
+    xit("Should prevent claiming a POAP token with an invalid ticket", async function () {
       const { bobby, ticketNFT, poap } = fixtures;
 
       // Initial State
@@ -430,7 +430,7 @@ describe("Event Tickets & POAPs", function () {
       await expect(ticketNFT.ownerOf(2)).to.be.revertedWith("ERC721: invalid token ID");
 
       // Action
-      await expect(poap.connect(bobby).mint(2, bobby.address)).to.be.revertedWith("ERC721: invalid token ID");
+      await expect(poap.connect(bobby).mint(2)).to.be.revertedWith("ERC721: invalid token ID");
 
       // Final State
       expect(await poap.poapCounter()).to.equal(0);
@@ -444,8 +444,8 @@ describe("Event Tickets & POAPs", function () {
       expect(await poap.balanceOf(alice.address)).to.equal(0);
 
       // Action
-      await poap.connect(alice).mint(1, alice.address);
-      await expect(poap.connect(alice).mint(1, alice.address)).to.be.revertedWith("ERC721: invalid token ID");
+      await poap.connect(alice).mint(1);
+      await expect(poap.connect(alice).mint(1)).to.be.revertedWith("ERC721: invalid token ID");
 
       // Final State
       expect(await ticketNFT.balanceOf(alice.address)).to.equal(0);
