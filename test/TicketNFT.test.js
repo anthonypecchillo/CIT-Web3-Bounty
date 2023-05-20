@@ -1,6 +1,10 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
+// Configures tests to behave properly based on your progress in the assignment
+// Update this constant to 2 when you start Part 2: POAPs
+const CURRENT_PART = 1;
+
 // Units are "seconds"
 const ONE_DAY = 60 * 60 * 24;
 
@@ -96,13 +100,15 @@ const setupFixtures = async (name, symbol, startTime) => {
   await ticketNFT.deployed();
 
   // Deploy POAP contract
-  POAP = await ethers.getContractFactory("POAP");
-  poap = await POAP.deploy(
-    `${name} POAP`,
-    `${symbol}P`,
-    ticketNFT.address,
+  if (CURRENT_PART === 2) {
+    POAP = await ethers.getContractFactory("POAP");
+    poap = await POAP.deploy(
+      `${name} POAP`,
+      `${symbol}P`,
+      ticketNFT.address,
     );
-  await poap.deployed();
+    await poap.deployed();
+  }
 
   // Add test users to the Registry whitelist
   await registry.connect(owner).bulkAddToWhitelist([
